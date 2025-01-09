@@ -2,10 +2,6 @@
 
 library(tidyverse)
 library(ggplot2)
-#library(plotrix)
-#library(vegan)
-#library(nlme)
-#library(chron)
 
 
 ##### General cleaning and averaging  ######
@@ -70,7 +66,7 @@ View(test)
 test<-acc%>%
   mutate(StationFront=Station.ID)%>%
   separate(StationFront,into=c("StationFront","StationBack"),sep="-")%>%
-  filter(StationFront=="CRMS0549",Group=="PS1")%>%
+  filter(StationFront=="CRMS0605",Group=="PS1")%>% # CRMS0549
   pivot_longer(Accretion.Measurement.1..mm.: Accretion.Measurement.4..mm.,names_to = "rep",values_to = "acc1")%>%
   arrange(mdy(Sample.Date..mm.dd.yyyy.))%>%
   group_by(Sample.Date..mm.dd.yyyy.,Establishment.Date..mm.dd.yyyy.)%>%
@@ -85,8 +81,13 @@ test<-as.data.frame(test)
 plot(test$years,test$meanaccmm, ylim=c(0,200),xlim=c(0,9))
 abline(lm(test$meanaccmm~test$years))
 coef(lm(meanaccmm~years,data=test))[2]
-lm(meanaccmm~years,data=test)
+mod1<-lm(meanaccmm~years,data=test)
 summary(lm(meanaccmm~years,data=test))
+sqrt(mean(mod1$residuals^2))
+
+RSS <- c(crossprod(mod1$residuals))
+MSE <- RSS / length(mod1$residuals)
+RMSE <- sqrt(MSE)
 
 #The upshot is that I can't recreate the Jankowski numbers exactly, but I'm pretty darn close - for the site above I get 22.45 mm/yr with R2 .97, and she gets 22.53 mm/yr with R2 .97. So I will proceed with the understanding that I am doing things correctly. I decided to average over the core first and then average the cores, since I think this is a better way of doing things.
 
@@ -144,18 +145,35 @@ dim(test)
 
 #Better b/c some might have been started earlier than 2008 so we are just looking for a sampling date in 2008
 test1<-acc2%>%
-  filter(year(mdy(sampledate))==2007)%>%
+  filter((year(mdy(estabdate))==2007&year(mdy(sampledate))==2020)|(year(mdy(estabdate))==2008&year(mdy(sampledate))==2020)|(year(mdy(estabdate))==2007&year(mdy(sampledate))==2018)|(year(mdy(estabdate))==2008&year(mdy(sampledate))==2018)|(year(mdy(estabdate))==2006&year(mdy(sampledate))==2020)|(year(mdy(estabdate))==2006&year(mdy(sampledate))==2020))%>%
+  group_by(StationFront)%>%
+  summarise(meanacc=mean(accmm))
+dim(test1)
+#131 2007/2008 to 2020 #this is wrong
+#131 2007/2008 to 2020/2021 #this is wrong
+#146 2007/2008 to 2018/2020 
+#197 2006/2007/2008 to 2018/2020 
+#139 2007/2008 to 2018 #this is wrong
+
+test1<-acc2%>%
+  filter((year(mdy(estabdate))==2007&year(mdy(sampledate))==2018)|(year(mdy(estabdate))==2008&year(mdy(sampledate))==2018))%>%
   group_by(StationFront,estabdate,sampledate)%>%
   summarise(meanacc=mean(accmm))
-test2<-acc2%>%
-  filter(year(mdy(sampledate))==2020)%>%
-  group_by(StationFront,estabdate,sampledate)%>%
-  summarise(meanacc=mean(accmm))
-length(intersect(test1$StationFront,test2$StationFront))
-#2007-2020: 180 sites
-#2008-2018: 241 sites
+dim(test1)
 
 
+# test1<-acc2%>%
+#   filter(year(mdy(sampledate))==2007)%>%
+#   group_by(StationFront,estabdate,sampledate)%>%
+#   summarise(meanacc=mean(accmm))
+# test2<-acc2%>%
+#   filter(year(mdy(sampledate))==2021)%>%
+#   group_by(StationFront,estabdate,sampledate)%>%
+#   summarise(meanacc=mean(accmm))
+# length(intersect(test1$StationFront,test2$StationFront))
+
+#I could probably do something like any accretion started in 2006-2008 that went until 2018-20
+#180 were started in 2007 or 2008 and have data from 2020
 
 
 
