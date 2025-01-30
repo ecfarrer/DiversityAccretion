@@ -32,7 +32,7 @@ veg$X..Cover.Total<-as.numeric(veg$X..Cover.Total)
 
 
 #Cleaning with dplyr: 
-#remove swamp (select only marshes)
+#remove swamp (select only marshes) XXXXXXXXXXX don't do this
 #remove planted plots (not sure why there are a few of these listed, they are not part of the regular CRMS000 plots
 #selection only In.Out is Both or In (Out means the plant was outside of the plot and it won't have a cover value)
 #Replace the diamond character which was read in as "\xd7" for Agropogon withnothing
@@ -63,7 +63,9 @@ veg2[which(veg2$TotalCover==0),]
 #if %CoverTotal is 0 it means the plot was open water, not sure if I can somehow keep those plots in, no species are listed so InOut is NA. Bareground and open water are sometimes given percent covers and sometimes are NA
 
 
-#Add back in the plots that had no plants.
+
+
+##### Extract and add back in the plots that had no plants #####
 
 veg2zerocover<-veg%>%
   rename(StationID = Station.ID, CollectionDate = Collection.Date..mm.dd.yyyy.,
@@ -87,13 +89,54 @@ veg2zerocover<-veg%>%
 
 #1894 rows 
 head(data.frame(veg2zerocover))
-dim(veg2zerocover)
+dim(veg2zerocover) #1894 plot-times
 length(unique(paste(veg2zerocover$StationID,veg2zerocover$CollectionDate)))
 unique(veg2zerocover$StationID) 
-#452 plots
+#452 plots, many plots were repeatedly open water (not surprising)
+
 
 #Merge back these open water plots
-veg3<-rbind(veg2,veg2zerocover)
+veg3<-rbind(veg2,veg2zerocover)%>%
+  arrange(StationID, as_date(mdy(CollectionDate)))
+head(veg3)
+
+#Check a few plots, it seems to have worked
+#View(veg3[which(veg3$StationID=="CRMS2627-V56"),])
+
+
+
+
+
+##### Look into plots that were not accessible due to too much phrag ##### 
+
+#There are estimates of phrag cover but it is at the edge of the stand, not in the plot. In the comments there is only an estimate of phrag cover, not any of the other species cover. Also, sometimes there are LOTS of other species listed so who knows if they would be in the actual plot (including all of them would be an overestimate of diversity and we can't include them anyway b/c there is no cover estimate.) So I think I probably have to just delete them.
+
+sum(grepl("Phragmites\\scover\\swas\\sestimated\\sto\\sbe", veg$Comments))# \\s = regular expression for space #902 rows, but the same comment is written in the same plot-year when there are many species "out". 
+ind<-grepl("Phragmites\\scover\\swas\\sestimated\\sto\\sbe", veg$Comments)
+temp<-veg[ind,]
+dim(temp)
+length(unique(temp$Station.ID)) #165 stations
+length(unique(paste(temp$Station.ID,temp$Collection.Date..mm.dd.yyyy.))) #604 station-years
+#165 stations were affected. There are 604 station-years so that means many stations had this problem 2-4 years in a row. the 902-604=298 is the other "out" species listed
+
+
+
+
+
+##### Clean up Veg 3, make species codes #####
+
+veg3$Community<-factor(veg3$Community, levels = c( "Freshwater","Intermediate","Brackish","Saline"))
+
+#there are 8 unknowns, "unknown" through "unknown #7", they are not consistently numbered across years so I should lump all unknowns as "unknown"
+#There is a Ludwigia grandiflora subspecies that would get lumped if I used the code below. I don't see any other subspecies
+
+sort(unique(veg3$Species))
+
+veg4<-veg3%>%
+  separate(col = Species, into = c("genus", "species", "extra_sp_info"),
+           fill= "right", extra= "merge", sep= "\\s" , remove = F)
+head(data.frame(veg4))
+View(veg4)
 
 
 
@@ -101,50 +144,11 @@ veg3<-rbind(veg2,veg2zerocover)
 
 
 
-
-levels(veg$Community)#"Brackish" "Freshwater" "Intermediate" "Saline"
-veg$Community<-factor(veg$Community, levels = c( "Freshwater","Intermediate","Brackish","Saline"))
-
-length(unique(veg$StationID))
 length(unique(veg$StationFront))
-
-#not sure what this means: So I should filter NAs for Cover if I use the %CoverTotal==0
-
-
-
-
-
-
-#Split the CollectionDate into 3 columns: day/month/year:
-crms2<-crms1a %>% separate(col = CollectionDate ,
-                           into=c("month","day","year"),sep="/",
-                           remove = F)
-#Select time and veg set you want to work with:======
-crms3 <- filter(crms2,  year < 2018  &  year > 2006)
-
-
-#Inspect the comments=====
-i1 <- grepl("Phragmites\\scover\\swas\\sestimated\\sto\\sbe", crms3$Comments)# \\s = regular expression for space
-sum(i1==TRUE)#964 plots with comment on estimated Phragmites cover as the sites were not surveyed
-#These i1 sites were too dense to access.
-#Phragmites was estimated between 70% & 100%
-crms3$Category <- i1 
-crms3$Category2 <- ifelse(crms3$Category==TRUE, "PhragInComment", "NA") #extra column to keep track of what TRUE means
-table(crms3$In.Out[crms3$Category=="TRUE"])#All Phragmites-in-comment was recorded as OUT:
-#Both   In  Out 
-#   0    0  964 
-#crms3$In.Out[crms3$Category== TRUE] <- "Both" #change In.Out to Both to keep this record.
 
 #substitute - for _ so:
 crms3$StationID<-as.factor(sub("-","_",crms3$StationID))
 
-#Keep "Out" out: Column In.Out assigns IN/OUT/BOTH categories to all species.
-#If a species occurs both IN and OUT of a plot, it is recorded as BOTH. 
-#If a species is rooted OUT of the plot, but is hanging over the plot, it is also recorded as BOTH.
-#Cover measures the cover within the quadrat only. Out-records add to CoverTotal value.
-
-crms4 <- filter(crms3, In.Out != "Out")
-dim(crms4) # 191405     13
 
 #Rename species to standard specCode (vegan-friendly):=====
 #seperate complex spName into genus and species:

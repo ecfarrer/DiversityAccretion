@@ -66,7 +66,7 @@ View(test)
 test<-acc%>%
   mutate(StationFront=Station.ID)%>%
   separate(StationFront,into=c("StationFront","StationBack"),sep="-")%>%
-  filter(StationFront=="CRMS0605",Group=="PS1")%>% # CRMS0549
+  filter(StationFront=="CRMS0549",Group=="PS1")%>% # CRMS0605
   pivot_longer(Accretion.Measurement.1..mm.: Accretion.Measurement.4..mm.,names_to = "rep",values_to = "acc1")%>%
   arrange(mdy(Sample.Date..mm.dd.yyyy.))%>%
   group_by(Sample.Date..mm.dd.yyyy.,Establishment.Date..mm.dd.yyyy.)%>%
@@ -95,7 +95,7 @@ RMSE <- sqrt(MSE)
 
 ##### Playing with all data for some of the plots to make sure that with the length of the dataset being much longer than Jankowski, the regressions still make sense
 test<-acc2%>%
-  filter(StationFront=="CRMS2854")%>%#  CRMS0174 CRMS0549 CRMS0002 CRMS0033 CRMS0030 CRMS2854 CRMS0311
+  filter(StationFront=="CRMS0549")%>%#  CRMS2854 CRMS0174  CRMS0002 CRMS0033 CRMS0030 CRMS2854 CRMS0311
   mutate(days=mdy(sampledate)-mdy(estabdate),years=days/365)%>%
   group_by(Group,sampledate,days,years)%>%
   summarise(meanaccmm=mean(accmm))%>%
@@ -105,7 +105,8 @@ test<-acc2%>%
   arrange(years)
 as.data.frame(test)
 test<-as.data.frame(test)
-plot(test$years,test$meanaccmm)
+plot(test$years[1:10],test$meanaccmm[1:10],pch=16,col="black",xlim=c(0,18),ylim=c(0,200),ylab="Accretion (mm)",xlab="Year")
+points(test$years[11:14],test$meanaccmm[11:14],pch=16,col="red")
 abline(lm(test$meanaccmm~test$years))
 coef(lm(meanaccmm~years,data=test))[2]
 #lm(meanaccmm~years,data=test)
