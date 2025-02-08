@@ -3,10 +3,9 @@
 library(tidyverse)
 library(ggplot2)
 # library(plotrix)
-# library(vegan)
 # library(nlme)
 # library(chron)
-# library(vegan)
+library(vegan)
 
 ##### Raw veg data ##### 
 #Braun-Blanquet Rank: 5 => 75 percent cover; 4 = 50-75 percent cover; 3 = 25-50 percent cover; 2 = 5-25 percent cover; 1 = numerous, but less than 5 percent cover, or scattered, with cover up to 5 percent; + = few, with small cover; and r = rare, solitary, with small cover.
@@ -264,10 +263,13 @@ temp1<-veg5[which(veg5$StationIDYear%in%temp2$StationIDYear),]
 indtodelete<-unique(temp1$StationIDCollectionDate)[c(F,T)]
 
 veg6<-veg5%>%
-  filter(!StationIDCollectionDate%in%indtodelete)
+  filter(!StationIDCollectionDate%in%indtodelete)%>%
+  arrange(SpecCode)
+  #mutate(SpecCode=factor(SpecCode,levels=sort(unique(veg5$SpecCode))))
   
 
 ##### Output for Lecture 6 and homework 6 #####
+#done before the arrange()
 outlec6<-veg6%>%
   filter(Community=="Saline")%>%
   unite(GenusSpecies,genus,species,remove=F)%>%
@@ -300,80 +302,97 @@ outhom6a<-outhom6[5000:7000,]
 write.csv(outhom6a,"/Users/farrer/Dropbox/EmilyComputerBackup/Documents/Teaching/EcologicalAnalysis2/EA2025/labs/lab6ggplot/crmshmwk.csv",row.names = F)
 
 
-##### Pivot wider, delete water/bareground, calculate summed cover #####
-##### Make an average/mode community #####
-veg7<-veg6%>%
-  select(StationID, Year,StationIDYear,CollectionDate,StationIDCollectionDate,Community,TotalCover,Latitude,Longitude,SpecCode,Cover)%>%
-  pivot_wider(names_from = SpecCode, values_from = Cover,values_fill = 0)
-head(veg7)  
 
-dim(veg7) #69933 x 677
+##### Pivot wider and more cleaning #####
+
+# Make a StationFront column
+# Pivot wider
+# Delete water/bareground
+# Calculate summed cover
+# Calculate richness, shannon, simpson, invsimpson
+# Relocate those variables
+
+veg7<-veg6%>%
+  separate_wider_delim(StationID,delim = "-",names = c("StationFront",NA),cols_remove = F)%>%
+  select(StationID,StationFront, Year,StationIDYear,CollectionDate,StationIDCollectionDate,Community,TotalCover,Latitude,Longitude,SpecCode,Cover)%>%
+  pivot_wider(names_from = SpecCode, values_from = Cover,values_fill = 0)%>%
+  arrange(StationID,Year)%>%
+  select(-Water_BareGround)
+veg7$SummedCover<-rowSums(veg7[,which(colnames(veg7)=="Acer_negundo"):which(colnames(veg7)=="Zizip_Mill.")])
+veg7$Richness<-specnumber(veg7[,which(colnames(veg7)=="Acer_negundo"):which(colnames(veg7)=="Zizip_Mill.")])
+veg7$Shannon<-diversity(veg7[,which(colnames(veg7)=="Acer_negundo"):which(colnames(veg7)=="Zizip_Mill.")],index="shannon")
+veg7$Simpson<-diversity(veg7[,which(colnames(veg7)=="Acer_negundo"):which(colnames(veg7)=="Zizip_Mill.")],index="simpson")
+veg7$InvSimpson<-diversity(veg7[,which(colnames(veg7)=="Acer_negundo"):which(colnames(veg7)=="Zizip_Mill.")],index="invsimpson")
+
+data.frame(veg8[1,])
+
+veg8<-veg7%>%
+  relocate(SummedCover:InvSimpson,.after=TotalCover)
+
+sort(veg8$SummedCover)
+head(data.frame(veg8))
+
+dim(veg8) #69933 x 678
 length(unique(veg6$StationIDYear)) #69933
 length(unique(veg6$StationIDCollectionDate)) #69933
 length(unique(veg7$StationIDYear)) #69933
 
 
-##### Make a modeCommunity column of most common community type over the years #####
+
+##### Make a column of most common community type for each StationID over the years #####
 
 #Note: this StationID has a community type and then we also want a community type for the whole StationFront
-temp <- veg7%>%
-  group_by(StationID,Community) %>% 
-  count(StationID)
-temp2<-temp%>%
+temp <- veg8%>%
+  group_by(StationID,StationFront,Community) %>% 
+  count(StationID)%>%
   pivot_wider(names_from = Community,values_from = n,values_fill = 0)
-#To do:
-#delete plots that were only sampled once in 2019 with vb at stationback filter(StationID!="CRMS0319-VB01")%>%  filter(StationID!="CRMS0319-VB02")%>%
+
+temp$CommunityStationID<-colnames(temp)[apply(temp,1,which.max)] 
+#there are warnings about NA's but it seems to have worked, there is no NA as the max, stationsIDs with NAs were assigned a marsh/swamp type
+unique(temp$CommunityStationID)
+
+which(temp$`NA`>0)
+data.frame(temp[681:692,])
+
+temp2<-temp%>%select(StationID,CommunityStationID)
+veg9<-veg8%>%
+  left_join(temp2)%>%
+  relocate(CommunityStationID,.after=Community)
+data.frame(veg9[1:10,1:17])
+View(veg9)
 
 
 
+##### Things that haven't been done yet #####
 
+#Delete plots that were only sampled once (or twice or three times?). In any case, select the years and plots you want.
+temp<-veg9%>%
+  group_by((StationID))%>%
+  count(StationID)
 
-#Using Pawel's method:
-#first define community type by most common type in stationfront
-#then average species comp and div and species rich
-#then merge accretion data with plant community data (veg4)
+#Rerun the most common community type code again to do it by StationFront (or for the first half of the years and second half of the years??). merge with above. (it might be better to calculate the CommunityStationFront on the individual "Community" variable rather than on the CommunityStationID variable, since there is a lot of variability over time at a StationID). it miht also be better rerun the CommunityStationID if you are deleting years. but I don't know if we even need CommunityStationID
 
-#Define the community-type in each StationFront based on n of Commuity-type Counts per station:
-StationComm <- group_by(veg3,StationFront,Community) %>% 
-  count(Count=StationFront)
-StationComm#It gives us count of communities per StationFront (740)
-SCwide<- spread(StationComm, key = Community, value = n, fill = 0)#make it wide
-SCwide$WhichMax<-colnames(SCwide)[apply(SCwide,1,which.max)]#while wide we can see which Comm is predominant
-SCwide
-StationCommDefined<-SCwide[, c(1,7)]
-colnames(StationCommDefined)[2] <- "Community" #Renaming WhichMAx back to Community
-StationCommDefined #320 stationFronts
+#Create a StationFront*year-level dataset by summarizing means across speciescover/diversity by stationfront and year
+vegX<-vegX%>%
+  group_by(StationFront,CommunityStationIDXX,year)%>%
+  summarise_at(vars(CoverTotal:ZiziMill),mean,na.rm=T) #need to relocate
 
-
-#Join with veg3 to create a plot/year-level (StationID*year level) data set
-veg4<-veg3%>%
-  rename(Community.yr=Community)%>%
-  left_join(StationCommDefined,by="StationFront")
-  
-veg4$richness<-specnumber(veg4[,9:438])
-veg4$shannon<-diversity(veg4[,9:438],index="shannon")
-veg4$tot<-rowSums(veg4[,9:438])
-
-#rearrange columns
-veg5<-veg4%>%
-  select(StationID:Community.yr,Community,CoverTotal,richness:tot,Acerrubr:ZiziMill)
-
-
-#Then create a StationFront*year-level dataset
-#Summarize means across species/diversity by stationfront and year. there will be an NA for meanaccmmpery when there is veg data but no acc data
-veg6<-veg5%>%
-  group_by(StationFront,Community,year)%>%
-  summarise_at(vars(CoverTotal:ZiziMill),mean,na.rm=T)
-
-#then replace richness, shannon, and tot, if you want to recalculat them based on the new averaged stationfront-level species data (rather than have them be the average across the small plots)
+#Replace richness, shannon, and tot, if you want to recalculate them based on the new averaged stationfront-level species data (rather than have them be the average across the small plots). I think I did this before wehn I analyzed accretion/diveristy, but now that I think about it more, since accretion is measured on such a small scale (little core), the plot level metrics might be better represetative of the effects on accretion than a big site level richness
 veg6$richness<-specnumber(veg6[,8:437])
 veg6$shannon<-diversity(veg6[,8:437],index="shannon")
 veg6$tot<-rowSums(veg6[,8:437])
-
 
 #Then create a StationFront-level dataset (average over years)
 veg7<-veg6%>%
   group_by(StationFront,Community)%>%
   summarise_at(vars(CoverTotal:ZiziMill),mean,na.rm=T)
+
+# Sum the unknowns into one "unknown" column. I will wait on this, not do it for now b/c if I want to recalculate richness or diversity at an entire StationFront I need the unknowns separated
+
+
+
+
+
+
 
 
