@@ -36,7 +36,7 @@ acc2<-acc%>%
   separate(StationFront,into=c("StationFront","StationBack"),sep="-")%>%
   pivot_longer(Accretion.Measurement.1..mm.: Accretion.Measurement.4..mm.,names_to = "rep",values_to = "acc1")%>%
   group_by(StationFront,Group,sampledate,estabdate)%>% 
-  summarise(meanaccmm=mean(acc1,na.rm=T))%>%  
+  summarise(meanaccmm=mean(acc1,na.rm=T),lat=mean(Latitude),lon=mean(Longitude))%>%  
   arrange(StationFront,Group,mdy(sampledate))%>%
   mutate(days=mdy(sampledate)-mdy(estabdate),years=days/365)%>%
   filter(!is.na(meanaccmm),years>.01)
@@ -261,7 +261,7 @@ test<-acc3%>%
 
 acc4<-acc3%>%
   left_join(test)
-
+data.frame(acc4)
 
 
 
@@ -271,7 +271,7 @@ acc4<-acc3%>%
 #after checking the data, I filtered plots that had fewer than 6 measurements, since a slope on n=5 is sketchy. and that is what Jankowski did
 acc5<-acc4%>%
   group_by(StationFront,estabdate,enddate)%>%
-  summarise(acc=as.numeric(coef(lm(meanaccmm~years))[2]),n=n())%>%
+  summarise(acc=as.numeric(coef(lm(meanaccmm~years))[2]),n=n(),lat=mean(lat),lon=mean(lon))%>%
   filter(n>5)
 acc5<-as.data.frame(acc5)
 acc5
@@ -284,7 +284,6 @@ sort(acc5$acc)
 acc5[which(acc5$acc<0),]
 acc5[which(acc5$acc>100),]
 #this note is only relevant from the early part of the time series I think (like the first 9 years or something): the plot CRMS0174 has a value over 100mm/yr, this looks actually correct based on the data, although there is a note in the raw data file that one measurement was affected by a large storm deposit, so I could delete if it looks really odd. there is no veg data from this station
-
 
 
 
