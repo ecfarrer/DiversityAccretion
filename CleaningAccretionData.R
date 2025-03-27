@@ -237,43 +237,52 @@ acc3<-acc2%>%
   group_by(StationFront)%>%
   mutate(year=year(mdy(sampledate)))%>%
   filter(any(year %in% c(2020,2021,2022,2023))) %>%
-  ungroup()
+  ungroup()%>%
+  filter(year<2024)
 dim(acc3)
 length(unique(acc3$StationFront))
 data.frame(acc3)
 #259 sites
-#check that all have >=6 time points
+
+#check that all have >=6 time points, no. delete one site with n=4. this will be done below in the regressions
+# test<-acc3%>%
+#   group_by(StationFront)%>%
+#   summarize(n=n())%>%
+#   filter(n>5)
+# test$StationFront
+# 
+# acc4<-acc3%>%
+#   filter(StationFront%in%test$StationFront)
+
+
 test<-acc3%>%
-  group_by(StationFront)%>%
-  summarize(n=n())%>%
-  filter(n>5)
-test$StationFront
+  group_by(StationFront,Group,estabdate)%>%
+  summarize(enddate=format(max(mdy(sampledate)), "%d/%m/%Y"))
 
 acc4<-acc3%>%
-  filter(StationFront%in%test$StationFront)
-
-dim(acc4)
+  left_join(test)
 
 
 
 
-##### haven't done below yet ####
 ##### Calculating one accretion rate per plot via regression ####
 
 #Doing calcs on all plots
-#after checking the data, I filtered plots that had fewer than 5 measurements, since a slope on n=4 is sketchy. this removed the negative slopes I was getting.
+#after checking the data, I filtered plots that had fewer than 6 measurements, since a slope on n=5 is sketchy. and that is what Jankowski did
 acc5<-acc4%>%
-  group_by(StationFront)%>%
+  group_by(StationFront,estabdate,enddate)%>%
   summarise(acc=as.numeric(coef(lm(meanaccmm~years))[2]),n=n())%>%
-  filter(n>4)
+  filter(n>5)
 acc5<-as.data.frame(acc5)
 acc5
+#258 sites
+
 
 #check that it is same as above, yes
 acc5[acc5$StationFront=="CRMS0549",]
 sort(acc5$acc)
-acc2a[which(acc5$acc<0),]
-acc2a[which(acc5$acc>100),]
+acc5[which(acc5$acc<0),]
+acc5[which(acc5$acc>100),]
 #this note is only relevant from the early part of the time series I think (like the first 9 years or something): the plot CRMS0174 has a value over 100mm/yr, this looks actually correct based on the data, although there is a note in the raw data file that one measurement was affected by a large storm deposit, so I could delete if it looks really odd. there is no veg data from this station
 
 
