@@ -1,12 +1,5 @@
 #Veg data
 
-library(tidyverse)
-library(ggplot2)
-# library(plotrix)
-# library(nlme)
-# library(chron)
-library(vegan)
-
 ##### Raw veg data ##### 
 #Braun-Blanquet Rank: 5 => 75 percent cover; 4 = 50-75 percent cover; 3 = 25-50 percent cover; 2 = 5-25 percent cover; 1 = numerous, but less than 5 percent cover, or scattered, with cover up to 5 percent; + = few, with small cover; and r = rare, solitary, with small cover.
 
@@ -363,21 +356,209 @@ View(veg9)
 
 
 
+
+##### Exporting for homework 10 #####
+veg10hmwk<-veg9%>%
+  select(StationID:Longitude,Spart_alterniflor)%>%
+  select(-Community)
+head(data.frame(veg10hmwk))
+write.csv(veg10hmwk,"/Users/farrer/Dropbox/EmilyComputerBackup/Documents/Teaching/EcologicalAnalysis2/EA2025/labs/Lab10RepeatedMeasures/veg10hmwk.csv",row.names = F)
+
+
+##### Looking into Panicum and phrag sites for % carbon #####
+head(veg9)
+ind<-which(veg9$Phrag_australis>0&veg9$Panic_hemitomon>0)
+veg9pp<-veg9[ind,]
+veg9pp2<-veg9pp%>%
+  select(StationID:Longitude, Phrag_australis,Panic_hemitomon)
+View(veg9pp2)
+unique(veg9pp2$StationFront)
+
+# ind<-which(veg9$Phrag_australis>0&veg9$Sagit_lancifolia>0)
+# veg9pp<-veg9[ind,]
+# veg9pp2<-veg9pp%>%
+#   select(StationID:Longitude, Phrag_australis,Sagit_lancifolia)
+# View(veg9pp2)
+# unique(veg9pp2$StationID)
+
+#read in OM data
+#our pots are 26cm depth so 24 depth is similar
+OM<-read.csv("Data/CRMS_Soil21Feb2025.csv",stringsAsFactors = T)
+
+OM2<-OM%>%
+  separate_wider_delim(Station.ID,delim = "-",names = c("StationFront",NA),cols_remove = F)%>%
+  filter(StationFront%in%unique(veg9pp2$StationFront))%>%
+  filter(Sample.Depth..cm.%in%c("0 to 4","4 to 8","8 to 12","12 to 16","16 to 20","20 to 24"))
+  
+View(OM2)
+
+mean(OM2$Organic.Matter....)
+#The mean is 39.5% OM for 0-8
+#The mean is 38.7% OM for 0-12
+#The mean is 35.2% OM for 0-24
+
+mean(OM2$Bulk.Density..g.cm3.)
+#The mean is 0.2066 for 0-8
+#The mean is 0.214 for 0-12
+#The mean is 0.247 for 0-24
+
+mean(OM2$Soil.Salinity..ppt.,na.rm=T)
+#0.82 ppt
+
+library(sf)
+library(tigris)
+louisiana_shapefile <- states(cb = TRUE,resolution="20m")#, state = "LA"
+plot(louisiana_shapefile)
+points(veg9pp2$Longitude,veg9pp2$Latitude)
+
+la_parishes <- counties(state = "LA")
+la_state <- states() |>
+  filter_state("Louisiana")
+
+ggplot(veg9pp2) +
+  geom_sf(data = la_parishes) +
+  geom_sf(data = la_state, fill = NA, color = "red") +
+  theme_void()+
+  geom_point(aes(x=Longitude,y=Latitude))
+
+# library(osmdata)
+# louisiana <- opq(getbb("Louisiana"))
+# parishes <- osmdata_sf(add_osm_feature(louisiana, key = "admin_level", value = "6")) #6 is counties, 4 is state, but bounding box is odd: https://stackoverflow.com/questions/78190635/why-do-i-get-neighboring-states-when-mapping-in-r-with-osmdata
+# ggplot(veg9pp2) +
+#   geom_sf(data = parishes$osm_multipolygons) +
+#   theme_void()+
+#   geom_point(aes(x=Longitude,y=Latitude))
+
+
+#Sagittaria and phrag sites
+head(veg9)
+ind<-which(veg9$Phrag_australis>0&veg9$Sagit_lancifolia>0)
+veg9sp<-veg9[ind,]
+veg9sp2<-veg9sp%>%
+  select(StationID:Longitude, Phrag_australis,Sagit_lancifolia)
+View(veg9sp2)
+unique(veg9sp2$StationFront)
+
+dim(veg9pp)
+
+ggplot(veg9sp2) +
+  geom_sf(data = la_parishes) +
+  geom_sf(data = la_state, fill = NA, color = "red") +
+  theme_void()+
+  geom_point(aes(x=Longitude,y=Latitude))
+
+OM3<-OM%>%
+  separate_wider_delim(Station.ID,delim = "-",names = c("StationFront",NA),cols_remove = F)%>%
+  filter(StationFront%in%unique(veg9sp2$StationFront))%>%
+  filter(Sample.Depth..cm.%in%c("0 to 4","4 to 8","8 to 12","12 to 16","16 to 20","20 to 24"))
+
+head(data.frame(OM3))
+mean(OM3$Soil.Salinity..ppt.,na.rm=T)
+#1.0 ppt
+
+
+#Eleocharis cellulosa and phrag sites
+ind<-which(veg9$Panic_hemitomon>0&veg9$Eleoc_cellulosa>0)#Phrag_australis
+veg9ep<-veg9[ind,]
+veg9ep2<-veg9ep%>%
+  select(StationID:Longitude, Panic_hemitomon,Eleoc_cellulosa)
+View(veg9ep2)
+unique(veg9ep2$StationFront)
+
+
+
+
+
+
+##### Select the years and plots you want. only include plots that were started in 2006-2009 and ended in 2020-2023 #####
+temp<-veg9%>%
+  group_by(StationID)%>%
+  summarize(minyear=min(Year),maxyear=max(Year))%>%
+  filter(minyear<2010)%>%
+  filter(maxyear>2019)
+
+veg10<-veg9%>%
+  filter(StationID%in%temp$StationID)%>%
+  filter(Year<2024)
+
+#Then filter out ones with fewer than 6 time points
+temp<-veg10%>%
+  group_by(StationID)%>%
+  count(StationID)
+data.frame(temp)
+min(temp$n) #the minimum is 10, so no need to filter
+
+View(veg10)
+
+
+
+##### Add a community type at the StationFront level #####
+
+#Rerun the most common community type code again to do it by StationFront (or for the first half of the years and second half of the years??). merge with above. (it might be better to calculate the CommunityStationFront on the individual "Community" variable rather than on the CommunityStationID variable, since there is a lot of variability over time at a StationID). it might also be better rerun the CommunityStationID if you are deleting years. but I don't know if we even need CommunityStationID
+
+temp <- veg10%>%
+  group_by(StationFront,Community) %>% 
+  count(StationFront)%>%
+  pivot_wider(names_from = Community,values_from = n,values_fill = 0)
+
+temp$CommunityStationFront<-colnames(temp)[apply(temp,1,which.max)] 
+#there are warnings about NA's but it seems to have worked, there is no NA as the max, stationsIDs with NAs were assigned a marsh/swamp type
+unique(temp$CommunityStationFront)
+
+which(temp$`NA`>0)
+data.frame(temp[54:56,])
+data.frame(temp[311:313,])
+
+temp2<-temp%>%select(StationFront,CommunityStationFront)
+veg11<-veg10%>%
+  left_join(temp2)%>%
+  relocate(CommunityStationFront,.after=CommunityStationID)
+data.frame(veg11[1:10,1:17])
+View(veg11)
+
+data.frame(veg11)[1:10,1:25]
+
+
+##### Create a StationFront*year-level dataset by summarizing means across speciescover/diversity by stationfront and year. And sum unknowns into one column #####
+
+# Sum the unknowns into one "unknown" column. I will wait on this, not do it for now b/c if I want to recalculate richness or diversity at an entire StationFront I need the unknowns separated
+
+veg12<-veg11%>%
+  mutate(Unknown=rowSums(dplyr::select(veg11, starts_with("Unkno"))))%>%
+  dplyr::select(-starts_with("Unkno_"))%>%
+  group_by(StationFront,CommunityStationFront)%>%
+  summarise_at(vars(TotalCover:Unknown),mean,na.rm=T)
+  
+#data.frame(veg12)[620:630,630:685]
+#data.frame(veg12)[620:630,636:676]
+veg12$Unknown
+colnames(veg12)
+data.frame(veg12)[1:10,1:40]
+dim(veg12)
+
+
+
+##### Merge veg and acc #####
+colnames(veg12)
+colnames(acc5)
+
+dim(veg12) #378
+dim(acc5) #258
+dim(dat) #255, not bad! only lost 3 stationfronts wow
+
+dat<-veg12%>%
+  inner_join(acc5)%>%
+  relocate(estabdate:lon,.after=StationFront)%>%
+  rename(Accretion=acc)
+head(dat)
+dim(dat)
+
+write.csv(dat,"Data/dat.csv",row.names = F)
+
+
 ##### Things that haven't been done yet #####
 
-#Delete plots that were only sampled once (or twice or three times?). In any case, select the years and plots you want.
-temp<-veg9%>%
-  group_by((StationID))%>%
-  count(StationID)
-
-#Rerun the most common community type code again to do it by StationFront (or for the first half of the years and second half of the years??). merge with above. (it might be better to calculate the CommunityStationFront on the individual "Community" variable rather than on the CommunityStationID variable, since there is a lot of variability over time at a StationID). it miht also be better rerun the CommunityStationID if you are deleting years. but I don't know if we even need CommunityStationID
-
-#Create a StationFront*year-level dataset by summarizing means across speciescover/diversity by stationfront and year
-vegX<-vegX%>%
-  group_by(StationFront,CommunityStationIDXX,year)%>%
-  summarise_at(vars(CoverTotal:ZiziMill),mean,na.rm=T) #need to relocate
-
-#Replace richness, shannon, and tot, if you want to recalculate them based on the new averaged stationfront-level species data (rather than have them be the average across the small plots). I think I did this before wehn I analyzed accretion/diveristy, but now that I think about it more, since accretion is measured on such a small scale (little core), the plot level metrics might be better represetative of the effects on accretion than a big site level richness
+#Replace richness, shannon, and tot, if you want to recalculate them based on the new averaged stationfront-level species data (rather than have them be the average across the small plots). I think I did this before when I analyzed accretion/diversity, but now that I think about it more, since accretion is measured on such a small scale (little core), the plot level metrics might be better reprentative of the effects on accretion than a big site level richness
 veg6$richness<-specnumber(veg6[,8:437])
 veg6$shannon<-diversity(veg6[,8:437],index="shannon")
 veg6$tot<-rowSums(veg6[,8:437])
@@ -387,7 +568,6 @@ veg7<-veg6%>%
   group_by(StationFront,Community)%>%
   summarise_at(vars(CoverTotal:ZiziMill),mean,na.rm=T)
 
-# Sum the unknowns into one "unknown" column. I will wait on this, not do it for now b/c if I want to recalculate richness or diversity at an entire StationFront I need the unknowns separated
 
 
 

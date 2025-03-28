@@ -217,9 +217,12 @@ dim(test1)
 
 #histogram of when PS1 starts
 test<-acc2%>%
-  filter(Group=="PS1")
+  filter(Group=="PS1")%>%
+  group_by(StationFront)%>%
+  summarize(estabdate=max(estabdate))
 unique(year(mdy(test$estabdate)))
-#all PS1s start in 2006, 2007, 2008, or 2009. That is pretty close together.
+sort(year(mdy(test$estabdate)))
+#all PS1s start in 2006, 2007, 2008, or 2009. That is pretty close together. 58 plots were from 2006
 #histogram of when PS1 ends
 test<-acc2%>%
   filter(Group=="PS1")%>%
