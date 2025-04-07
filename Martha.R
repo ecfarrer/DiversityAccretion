@@ -1,7 +1,7 @@
 library(tidyverse)
 library(vegan)
 
-data <- read_csv("~/Downloads/dat.csv")
+data <- read_csv("dat.csv")
 
 #removing species with ≤2 non-zero values
 non_zero_counts <- colSums(data != 0)
