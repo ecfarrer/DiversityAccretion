@@ -20,6 +20,6 @@ species <- filtered_data %>%
 
 nmds_result <- metaMDS(species, distance = "bray", k = 2, trymax = 100)
 nmds_result$stress
-
+#0.1383
 
 plot(nmds_result, type = "t")
