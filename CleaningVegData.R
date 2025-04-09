@@ -405,6 +405,12 @@ mean(OM2$Bulk.Density..g.cm3.)
 mean(OM2$Soil.Salinity..ppt.,na.rm=T)
 #0.82 ppt
 
+#typical bulk density of soil with ~19%SOM (i.e. 11%C)
+temp<-OM%>%
+  filter(Organic.Matter....>18&Organic.Matter....<20)
+View(temp)
+mean(temp$Bulk.Density..g.cm3.)
+
 library(sf)
 library(tigris)
 louisiana_shapefile <- states(cb = TRUE,resolution="20m")#, state = "LA"
@@ -464,6 +470,63 @@ veg9ep2<-veg9ep%>%
   select(StationID:Longitude, Panic_hemitomon,Eleoc_cellulosa)
 View(veg9ep2)
 unique(veg9ep2$StationFront)
+
+#Spartina patens and phrag sites
+ind<-which(veg9$Phrag_australis>0&veg9$Spart_patens>0)
+veg9ps<-veg9[ind,]
+veg9ps2<-veg9ps%>%
+  select(StationID:Longitude, Phrag_australis,Spart_patens)
+View(veg9ps2)
+unique(veg9ps2$StationFront)
+
+#our pots are 26cm depth so 24 depth is similar
+OM<-read.csv("Data/CRMS_Soil21Feb2025.csv",stringsAsFactors = T)
+
+OM2<-OM%>%
+  separate_wider_delim(Station.ID,delim = "-",names = c("StationFront",NA),cols_remove = F)%>%
+  filter(StationFront%in%unique(veg9ps2$StationFront))%>%
+  filter(Sample.Depth..cm.%in%c("0 to 4","4 to 8","8 to 12","12 to 16","16 to 20","20 to 24"))
+
+View(OM2)
+
+mean(OM2$Organic.Matter....,na.rm=T)
+#The mean is 34.8% OM for 0-24
+
+mean(OM2$Bulk.Density..g.cm3.,na.rm=T)
+#The mean is 0.254 for 0-24
+
+mean(OM2$Soil.Salinity..ppt.,na.rm=T)
+#2.60 ppt
+
+
+#Just where is phrag
+ind<-which(veg9$Phrag_australis>0)
+veg9p<-veg9[ind,]
+veg9p2<-veg9p%>%
+  select(StationID:Longitude, Phrag_australis)
+View(veg9p2)
+unique(veg9p2$StationFront)
+
+#our pots are 26cm depth so 24 depth is similar
+OM<-read.csv("Data/CRMS_Soil21Feb2025.csv",stringsAsFactors = T)
+
+OM2<-OM%>%
+  separate_wider_delim(Station.ID,delim = "-",names = c("StationFront",NA),cols_remove = F)%>%
+  filter(StationFront%in%unique(veg9p2$StationFront))%>%
+  filter(Sample.Depth..cm.%in%c("0 to 4","4 to 8","8 to 12","12 to 16","16 to 20","20 to 24"))
+
+View(OM2)
+
+mean(OM2$Organic.Matter....,na.rm=T)
+#The mean is 32.1% OM for 0-24
+
+mean(OM2$Bulk.Density..g.cm3.,na.rm=T)
+#The mean is 0.30 for 0-24
+
+mean(OM2$Soil.Salinity..ppt.,na.rm=T)
+#2.10 ppt
+
+
 
 
 
