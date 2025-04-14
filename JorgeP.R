@@ -1,7 +1,7 @@
 #Jorge's code
-install.packages("gitcreds")
+#install.packages("gitcreds")
 library(gitcreds)
-gitcreds_set()
+#gitcreds_set()
 
 library(ggplot2)
 library(tidyverse)
@@ -41,12 +41,37 @@ summary(M2)
 #playing around with models
 
 PC_Data <- rda(Data, scale = TRUE)
-#i need to have a data frame with just numberic type characters so gotta make a new data frame
+#i need to have a data frame with just numeric type characters so gotta make a new data frame
 #trying to do an exploratory PCA
 #its mad at me
 #have to make a data frame of the names
 NumbersData <- Data[-c(1,2,7,13)]
+#this got rid of the columns corresponding to these numbers since they were causing problems because
+#they were not numeric characters
 PC_Data <- rda(NumbersData, scale= TRUE)
+#now this works!
 summary(PC_Data)
-#ok got it working so now i just need to find a way to turn this into a PCA!
-NamesData <- Data
+#ok got it working so now i just need to find a way to turn this into a PCA!\
+head(NamesData)
+
+
+#ok scratch everything its a PCoA we need to make
+PCoAData<-capscale(NumbersData~1,distance="bray")
+summary(PCoAData)
+scores(PCoAData)
+#species data nested in other data!
+species_scores<-data.frame(scores(PCoAData)$species,
+                           labels=rownames(scores(PCoAData)$species))
+site_scores <- data.frame(cbind(env,scores(PCoAData)$sites,
+                                labels=rownames(scores(PCoAData)$sites)))
+ggplot() + 
+  geom_vline(xintercept = c(0), color = "grey70", linetype = 2) +
+  geom_hline(yintercept = c(0), color = "grey70", linetype = 2) +  
+  xlab("MDS1") + 
+  ylab("MDS2") +  
+  geom_text(data=site_scores, aes(x=MDS1, y=MDS2, label=labels), size=6) +
+  geom_segment(data=species_scores, aes(x=0, y=0, xend=MDS1, yend=MDS2), 
+               colour="red", size=0.4, arrow=arrow(length=unit(.15,"cm"))) +
+  geom_text_repel(data=species_scores, aes(x=MDS1, y=MDS2, label=labels),
+                  size=5,colour="red",max.overlaps = 23)
+#ok the code is working but i need to make it colored and based on community station ID
