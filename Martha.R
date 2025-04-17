@@ -30,8 +30,9 @@ ggplot(brackish, aes(x = SummedCover, y = Accretion)) +
   geom_smooth(method = lm, se = F)
 
 
-#glm 
-m1 <- gls(Accretion ~ Richness + Spart_patens + SummedCover, 
+#glm with four most dominant species
+m1 <- gls(Accretion ~ Richness + Spart_patens + Disti_spicata +
+            Spart_alterniflor + Schoe_americanus + SummedCover, 
           correlation = corSpher(form = ~ lat+lon), data = brackish)
 
 summary(m1)
@@ -44,10 +45,6 @@ hist(resid(m1, type = "normalized"))
 
 #type III anova - no significant predictor variables 
 anova(m1, type = "marginal")
-
-
-
-
 
 
 
