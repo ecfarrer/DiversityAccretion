@@ -36,12 +36,13 @@ m1 <- gls(Accretion ~ Richness + Spart_patens + SummedCover,
 
 summary(m1)
 
+#model validation - assumptions of normality and homoscedasticity met
 plot(x = fitted(m1), y = resid(m1, type = "normalized"), abline(h = 0))
 
 hist(resid(m1, type = "normalized"))
 
 
-#type III anova
+#type III anova - no significant predictor variables 
 anova(m1, type = "marginal")
 
 
