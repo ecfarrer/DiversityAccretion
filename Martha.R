@@ -49,6 +49,8 @@ dominant4 <- ggplot(brackish, aes(x = Schoe_americanus, y = Accretion)) +
 
 
 #glm with four most dominant species
+options(constrasts = c("contr.helmert", "contr.poly"))
+
 m1 <- gls(Accretion ~ Richness + Spart_patens + Disti_spicata +
             Spart_alterniflor + Schoe_americanus + SummedCover, 
           correlation = corSpher(form = ~ lat+lon), data = brackish)
@@ -63,6 +65,16 @@ hist(resid(m1, type = "normalized"))
 
 #type III anova - no significant predictor variables 
 anova(m1, type = "marginal")
+
+
+#extracting R-squared
+m1_var <- var(m1$residuals)
+null_model <- gls(Accretion ~ 1, data = brackish)
+null_var <- var(null_model$residuals)
+
+r2 <- 1- (m1_var / null_var)
+
+
 
 
 
