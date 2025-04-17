@@ -1,5 +1,6 @@
 library(tidyverse)
 library(nlme)
+library(patchwork)
 
 data <- read_csv("dat.csv")
 
@@ -15,19 +16,36 @@ dom_spp <- brackish %>%
 
 
 #accretion vs. richness
-ggplot(brackish, aes(x = Richness, y = Accretion)) +
-  geom_point() +
-  geom_smooth(method = lm, se = F)
-
-#accretion vs. dominant species
-ggplot(brackish, aes(x = Spart_patens, y = Accretion)) +
+richness <- ggplot(brackish, aes(x = Richness, y = Accretion)) +
   geom_point() +
   geom_smooth(method = lm, se = F)
 
 #accretion vs. summed cover
-ggplot(brackish, aes(x = SummedCover, y = Accretion)) +
+sum_cov <- ggplot(brackish, aes(x = SummedCover, y = Accretion)) +
   geom_point() +
   geom_smooth(method = lm, se = F)
+
+(richness | sum_cov)
+
+#accretion vs. dominant species
+dominant1 <- ggplot(brackish, aes(x = Spart_patens, y = Accretion)) +
+  geom_point() +
+  geom_smooth(method = lm, se = F)
+
+dominant2 <- ggplot(brackish, aes(x = Disti_spicata, y = Accretion)) +
+  geom_point() +
+  geom_smooth(method = lm, se = F)
+
+dominant3 <- ggplot(brackish, aes(x = Spart_alterniflor, y = Accretion)) +
+  geom_point() +
+  geom_smooth(method = lm, se = F)
+
+dominant4 <- ggplot(brackish, aes(x = Schoe_americanus, y = Accretion)) +
+  geom_point() +
+  geom_smooth(method = lm, se = F)
+
+(dominant1 | dominant2) / (dominant3 | dominant4)
+
 
 
 #glm with four most dominant species
