@@ -31,12 +31,22 @@ ggplot(brackish, aes(x = SummedCover, y = Accretion)) +
 
 
 #glm 
-m1 <- gls(Accretion ~ Richness + Spart_patens + SummedCover, data = brackish)
-
-m2 <- gls(Accretion ~ Richness + Spart_patens + SummedCover, 
+m1 <- gls(Accretion ~ Richness + Spart_patens + SummedCover, 
           correlation = corSpher(form = ~ lat+lon), data = brackish)
-  
-anova(m1, m2)
 
-anova(m2, type = "marginal")
+summary(m1)
+
+plot(x = fitted(m1), y = resid(m1, type = "normalized"), abline(h = 0))
+
+hist(resid(m1, type = "normalized"))
+
+
+#type III anova
 anova(m1, type = "marginal")
+
+
+
+
+
+
+
