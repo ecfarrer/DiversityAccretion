@@ -47,6 +47,18 @@ df_fresh <- df_fresh %>%
   distinct(lat, lon, .keep_all = TRUE)
 
 # Plot Relationships
+
+ggplot(df_fresh, aes(x = Richness, y = Accretion)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Accretion vs. Richness")
+
+ggplot(df_fresh, aes(x = SummedCover, y = Accretion)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Accretion vs. Summedcover")
+
+
 ggplot(df_fresh, aes(x = Sagit_lancifolia, y = Accretion)) +
   geom_point() +
   geom_smooth(method = "lm") +
@@ -99,3 +111,18 @@ hist(resid(gls_model, type = "normalized"),
      main = "Histogram of Normalized Residuals",
      xlab = "Normalized Residuals",
      col = "lightblue", border = "white")
+
+n_freshwater_sites <- df_fresh %>%
+  distinct(StationID) %>%
+  nrow()
+
+cat("Total number of freshwater marsh sites included:", n_freshwater_sites, "\n")
+colnames(df_fresh)
+
+n_freshwater_sites <- df_fresh %>%
+  distinct(StationFront) %>%
+  nrow()
+
+cat("Total number of freshwater marsh sites included:", n_freshwater_sites, "\n")
+
+
