@@ -62,11 +62,7 @@ dom5 <- Intermediate_dom %>%
   count(dom_species, sort = TRUE) %>%
   head(5)
 
-ggplot(data=Intermediate, aes(x=Accretion, y = Richness)) +
-  geom_point() +
-  geom_smooth(method = lm)
-
-ggplot(data=Intermediate, aes(x=Accretion, y = SummedCover)) +
+ggplot(data=Intermediate, aes(x=Richness, y = Accretion)) +
   geom_point() +
   geom_smooth(method = lm)
 
@@ -75,24 +71,32 @@ ggplot(data=Intermediate, aes(x=SummedCover, y = Accretion)) +
   geom_smooth(method = lm)
 
 #dom = Spartina patens
-ggplot(data=Intermediate, aes(x=Spart_patens, y = Accretion)) +
+patDom <- ggplot(data=Intermediate, aes(x=Spart_patens, y = Accretion)) +
   geom_point() +
-  geom_smooth(method = lm)
+  geom_smooth(method = lm) +
+  xlab(label = "Spartina Patens Cover")
 
 #dom = Vigna luteola
-ggplot(data=Intermediate, aes(x=Vigna_luteola, y = Accretion)) +
+lutDom <- ggplot(data=Intermediate, aes(x=Vigna_luteola, y = Accretion)) +
   geom_point() +
-  geom_smooth(method = lm)
+  geom_smooth(method = lm) +
+  xlab(label = "Vigna luteola Cover")
 
 #dom = Phrag.
-ggplot(data=Intermediate, aes(x=Phrag_australis, y = Accretion)) +
+ausDom <- ggplot(data=Intermediate, aes(x=Phrag_australis, y = Accretion)) +
   geom_point() +
-  geom_smooth(method = lm)
+  geom_smooth(method = lm) +
+  xlab(label = "Phragmites australis Cover")
 
 #dom = Schoenoplectus americanus
-ggplot(data=Intermediate, aes(x=Schoe_americanus, y = Accretion)) +
+ameDom <- ggplot(data=Intermediate, aes(x=Schoe_americanus, y = Accretion)) +
   geom_point() +
-  geom_smooth(method = lm)
+  geom_smooth(method = lm) +
+  xlab(label = "Schoenoplectus americanus Cover")
+
+domscombined <- (patDom + lutDom) / (ausDom + ameDom)
+domscombined
+
 
 #glm of 4 most dom
 options(constrasts = c("contr.helmert", "contr.poly"))
@@ -116,7 +120,7 @@ null_model <- gls(Accretion ~ 1, data = Intermediate)
 null_var <- var(null_model$residuals)
 
 r2 <- 1- (glm1r2 / null_var)
-
+r2
 
 
 
