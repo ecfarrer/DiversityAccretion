@@ -22,8 +22,9 @@ library(nlme)
 dat2 <- dat1 %>%
   filter(CommunityStationFront != "Swamp") %>%
   mutate(CommunityStationFront = droplevels(CommunityStationFront))
-m1 <- lme(Richness ~ CommunityStationFront + Region + CommunityStationFront * Region,
-          random = ~1 | Region,
+options(contrasts=c("contr.helmert","contr.poly"))
+m1 <- 
+  gls(Richness ~ CommunityStationFront + Region + CommunityStationFront * Region,
           correlation = corSpher(form = ~ lat + lon),
           data = dat2)
 summary(m1)
