@@ -612,9 +612,11 @@ dim(dat) #255, not bad! only lost 3 stationfronts wow
 dat<-veg12%>%
   inner_join(acc5)%>%
   relocate(estabdate:lon,.after=StationFront)%>%
-  rename(Accretion=acc)
+  rename(Accretion=acc)%>%
+  left_join(soil5)%>%
+  relocate(BelowgroundLive:BelowgroundDead,.after=lon)
 head(dat)
-dim(dat)
+dim(dat) #255 rows, 677 cols
 
 write.csv(dat,"Data/dat.csv",row.names = F)
 
