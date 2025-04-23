@@ -28,3 +28,21 @@ ggplot(cleandat, aes(x = Community, y = Simpson)) +
 
 #Accretion and community type (bar/box)
 boxplot(Accretion~Community,data = cleandat, xlab = "Community", ylab = "Accretion")
+
+#Group Project Tasks April 16, 2025
+#Swamp – get dominant species, do figures of accretion vs. Richness, accretion vs. dominant species, 
+#accretion vs summed cover, do glm of accretion~richness + dominant species + summed cover accounting for spatial autocorrelation, 
+#type III anova
+#Acer_negundo:Unknown
+dat <- read.csv("Data/dat.csv", header = TRUE)
+
+#dominant species 
+swampdat <-dat%>%mutate(Community=factor(CommunityStationFront, levels=c("Swamp","Freshwater","Intermediate","Brackish","Saline")))%>%
+  filter(Community%in%c("Swamp"))
+
+
+ggplot(cleandat_means, aes(x=Species, y=mean))+ 
+  geom_bar(stat = "identity")+ 
+  geom_errorbar(aes(ymax = mean+se, ymin = mean-se), width=0.25)
+
+  
