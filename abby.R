@@ -22,3 +22,9 @@ stress <- nmds$stress
 plot(nmds, type = "t")
 
 # would love to do an nmds colored by community type
+
+
+
+## Reworking veg data
+
+
