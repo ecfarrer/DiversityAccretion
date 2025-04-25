@@ -1,21 +1,33 @@
-install.packages("gitcreds")
-library(gitcreds)
-gitcreds_set() #enter your personal access token
+
 ##uploading data##
 dat <- read.csv("Data/dat.csv",stringsAsFactors = T)
 head(dat)
 ##Split the data into east/west: chenier plain (west of longitude -92) and mississippi delta (east of lon -92)##
 library(dplyr)
-dat <- dat %>%
-  mutate(Region = ifelse(Longitude < -92, "Chenier Plain", "Mississippi Delta"))
-dat
+dat1 <- dat %>%
+  mutate(Region = ifelse(Longitude < -92, "Chenier Plain (west)", "Mississippi Delta (east)"))
+str(dat1)
 ##Richness vs. community type and east/west, boxplot with figure legend##
 library(ggplot2)
-ggplot(dat,aes(x=CommunityStationFront,y=Richness, fill=Region)) +
-  geom_boxplot()
+ggplot(dat1,aes(x=CommunityStationFront,y=Richness, fill=Region)) +
+  geom_boxplot() +
+  labs(
+    title = "Species Richness by Community Type and Region",
+    x = "Community Type",
+    y = "Species Richness",
+    fill = "Region"
+  )
 ##glm including spatial autocorrelation, type III anova##
 library(nlme)
-m1 <- lme(Richness ~ CommunityStationFront + Region, random=~1|Region, correlation=corSpher(form = ~ lat+lon),  data = dat) 
+dat2 <- dat1 %>%
+  filter(CommunityStationFront != "Swamp") %>%
+  mutate(CommunityStationFront = droplevels(CommunityStationFront))
+options(contrasts=c("contr.helmert","contr.poly"))
+m1 <- 
+  gls(Richness ~ CommunityStationFront + Region + CommunityStationFront * Region,
+          correlation = corSpher(form = ~ lat + lon),
+          data = dat2)
 summary(m1)
-anova(m1,type="marginal")
+m3 <- anova(m1,type="marginal")
+m3
 

@@ -1,6 +1,7 @@
 library(tidyverse)
 library(nlme)
 library(patchwork)
+library(piecewiseSEM)
 
 data <- read_csv("dat.csv")
 
@@ -68,10 +69,12 @@ anova(m1, type = "marginal")
 
 
 #extracting R-squared
+rsquared(m1)
+
+
 m1_var <- var(m1$residuals)
 null_model <- gls(Accretion ~ 1, data = brackish)
 null_var <- var(null_model$residuals)
-
 r2 <- 1- (m1_var / null_var)
 
 
