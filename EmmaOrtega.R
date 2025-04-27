@@ -6,7 +6,7 @@ library(tidyverse)
 library(nlme)
 library(piecewiseSEM)
 
-data <- read.csv("dat.csv", stringsAsFactors = T)
+data <- read.csv("Data/dat.csv", stringsAsFactors = T)
 
 ### April 7
 #Recategorise Community Type by salinity
@@ -60,7 +60,7 @@ data3 <- data2 %>%
         filter(CommunityStationFront == "Freshwater" | CommunityStationFront == "Intermediate" | CommunityStationFront == "Brackish" | CommunityStationFront == "Saline")
 
 #figure for cover vs community type by location
-ggplot(data2,aes(x=communitytype,y=SummedCover, fill = communitytype))+ 
+ggplot(data3,aes(x=communitytype,y=SummedCover, fill = communitytype))+ 
         geom_boxplot() + 
         labs(x = "Community Type",y="Summed Cover")+
         ggtitle("Summed Cover vs Community Type by Location") + 
@@ -74,4 +74,35 @@ summary(model)
 anova(model, type = "marginal")
 
 #R2
-rsquared(model)
+rsquared(model2)
+
+SSR<-sum((residuals(model,type="response")^2))
+SST<-sum((data3$SummedCover - mean(data3$SummedCover,na.rm=T))^2,na.rm=T)
+R2<-1-SSR/SST
+R2
+
+### April 26
+# Belowground biomass dead
+
+#Remove NAs
+data4 <- na.omit(data3)
+
+#figure for biomass dead vs community type by location
+ggplot(data4,aes(x=communitytype,y=BelowgroundDead, fill = communitytype))+ 
+        geom_boxplot() + 
+        labs(x = "Community Type",y="Belowground Biomass Dead")+
+        ggtitle("Belowground Biomass Dead vs Community Type by Location") + 
+        theme_light() + scale_fill_brewer(palette="Dark2") + 
+        facet_wrap(~east_west)
+
+# model
+options(contrasts=c("contr.helmert","contr.poly"))
+model2 <- gls(BelowgroundDead ~ CommunityStationFront*east_west, correlation=corSpher(form = ~ lat+lon), data=data4)
+summary(model2)
+anova(model2, type = "marginal")
+
+# R2
+SSR2<-sum((residuals(model2,type="response")^2))
+SST2<-sum((data4$BelowgroundLive - mean(data4$BelowgroundDead,na.rm=T))^2,na.rm=T)
+R22<-1-SSR2/SST2
+R22
