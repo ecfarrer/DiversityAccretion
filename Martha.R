@@ -2,11 +2,18 @@ library(tidyverse)
 library(nlme)
 library(patchwork)
 library(piecewiseSEM)
+library(MASS)
 
-data <- read_csv("dat.csv")
+data <- read_csv("Data/dat.csv")
+
 
 brackish <- data %>%
-  filter(CommunityStationFront == "Brackish")
+  filter(CommunityStationFront == "Brackish") %>%
+  mutate(Region = case_when(lon < -92 ~ "west",
+                            lon > -92 ~ "east"))
+
+brackish_reduced <- na.omit(brackish)
+  
 
 #dominant species - Spartina patens
 dom_spp <- brackish %>%
@@ -21,12 +28,19 @@ richness <- ggplot(brackish, aes(x = Richness, y = Accretion)) +
   geom_point() +
   geom_smooth(method = lm, se = F)
 
+
 #accretion vs. summed cover
 sum_cov <- ggplot(brackish, aes(x = SummedCover, y = Accretion)) +
   geom_point() +
   geom_smooth(method = lm, se = F)
 
 (richness | sum_cov)
+
+
+#accretion vs. region
+ggplot(brackish, aes(x = Region, y = Accretion)) +
+  geom_boxplot()
+
 
 #accretion vs. dominant species
 dominant1 <- ggplot(brackish, aes(x = Spart_patens, y = Accretion)) +
@@ -49,33 +63,64 @@ dominant4 <- ggplot(brackish, aes(x = Schoe_americanus, y = Accretion)) +
 
 
 
-#glm with four most dominant species
+#accretion vs. below-ground biomass
+ggplot(brackish, aes(x = BelowgroundLive, y = Accretion)) +
+  geom_point() +
+  geom_smooth(method = lm, se = F)
+
+ggplot(brackish, aes(x = BelowgroundDead, y = Accretion)) +
+  geom_point() +
+  geom_smooth(method = lm, se = F)
+
+
+
+#glm with reduced data set (for biomass analysis)
 options(constrasts = c("contr.helmert", "contr.poly"))
 
-m1 <- gls(Accretion ~ Richness + Spart_patens + Disti_spicata +
-            Spart_alterniflor + Schoe_americanus + SummedCover, 
-          correlation = corSpher(form = ~ lat+lon), data = brackish)
+m1 <- gls(Accretion ~ Richness + SummedCover + BelowgroundLive + 
+            BelowgroundDead + Region + Spart_patens, 
+          correlation = corSpher(form = ~ lat+lon), 
+          method = "ML", data = na.omit(brackish))
 
-summary(m1)
+stepAIC(m1, direction = "backward") 
+
+m2 <- gls(Accretion ~ Richness + SummedCover + Region + Spart_patens, 
+          correlation = corSpher(form = ~ lat+lon), 
+          method = "REML", data = na.omit(brackish))
+
+anova(m2, type = "marginal")
+
+#glm with full data set (excludes biomass analysis)
+m3 <- gls(Accretion ~ Richness + SummedCover + Region + Spart_patens, 
+          correlation = corSpher(form = ~ lat+lon), 
+          method = "ML", data = brackish)
+
+test <- gls(Accretion ~ Richness + SummedCover + Region + Spart_patens, 
+          correlation = corSpher(form = ~ lat+lon), 
+          method = "REML", data = brackish)
+
+anova(test, type = "marginal")
+
+stepAIC(m3, direction = "backward")
+
+
+#THIS IS THE FINAL MODEL
+m4 <- gls(Accretion ~ Richness, 
+          correlation = corSpher(form = ~ lat+lon), 
+          method = "REML", data = brackish)
+
+anova(m4, type = "marginal")
+
 
 #model validation - assumptions of normality and homoscedasticity met
-plot(x = fitted(m1), y = resid(m1, type = "normalized"), abline(h = 0))
+plot(x = fitted(m4), y = resid(m4, type = "normalized"), abline(h = 0))
 
-hist(resid(m1, type = "normalized"))
-
-
-#type III anova - no significant predictor variables 
-anova(m1, type = "marginal")
+hist(resid(m4, type = "normalized"))
 
 
 #extracting R-squared
-rsquared(m1)
-
-
-m1_var <- var(m1$residuals)
-null_model <- gls(Accretion ~ 1, data = brackish)
-null_var <- var(null_model$residuals)
-r2 <- 1- (m1_var / null_var)
+rsquared(m2)
+rsquared(m4)
 
 
 
