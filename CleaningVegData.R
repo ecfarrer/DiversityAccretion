@@ -601,7 +601,7 @@ dim(veg12)
 
 
 
-##### Merge veg and acc #####
+##### Merge veg and acc and basins#####
 colnames(veg12)
 colnames(acc5)
 
@@ -609,16 +609,29 @@ dim(veg12) #378
 dim(acc5) #258
 dim(dat) #255, not bad! only lost 3 stationfronts wow
 
+datwithbasins<-read.csv("Data/dat with basins.csv")
+
+datwithbasins2<-datwithbasins%>%
+  select(StationFront,Basin)
+
 dat<-veg12%>%
   inner_join(acc5)%>%
   relocate(estabdate:lon,.after=StationFront)%>%
   rename(Accretion=acc)%>%
   left_join(soil5)%>%
-  relocate(BelowgroundLive:BelowgroundDead,.after=lon)
+  relocate(BelowgroundLive:BelowgroundDead,.after=lon)%>%
+  left_join(datwithbasins2)%>%
+  relocate(Basin,.after=StationFront)
+  
 head(dat)
-dim(dat) #255 rows, 677 cols
+dim(dat) #255 rows, 678 cols
 
+##### Merge dat with basins #####
 write.csv(dat,"Data/dat.csv",row.names = F)
+
+
+
+
 
 
 ##### Things that haven't been done yet #####
