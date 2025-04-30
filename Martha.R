@@ -38,7 +38,7 @@ sum_cov <- ggplot(brackish, aes(x = SummedCover, y = Accretion)) +
 
 
 #accretion vs. region
-ggplot(brackish, aes(x = Region, y = Accretion)) +
+region <- ggplot(brackish, aes(x = Region, y = Accretion)) +
   geom_boxplot()
 
 
@@ -119,7 +119,6 @@ hist(resid(m4, type = "normalized"))
 
 
 #extracting R-squared
-rsquared(m2)
 rsquared(m4)
 
 
