@@ -2,19 +2,56 @@
 #install.packages("gitcreds")
 library(gitcreds)
 #gitcreds_set()
+#rm(list = ls())
 
 
-
-library(ggplot2)
-library(tidyverse)
-library(dplyr)
-library(MASS)
 library(vegan)
+library(ggplot2)
 library(ggrepel)
+library(dplyr)
+library(tibble)
 
 Data <-read.csv("~/Documents/Ecological_Analysis/DiversityAccretion/Data/dat.csv", row.names = 1)
+data2<- read.csv("~/Documents/Ecological_Analysis/DiversityAccretion/Data/dat.csv")
 #can also read in like this to get the first collumn as the row names: 
 #Data<-read.csv("~/Documents/Ecological_Analysis/DiversityAccretion/Data/dat.csv", row.names = 1)
+
+communities <- c("Swamp", "Brackish", "Intermediate", "Saline", "Freshwater")
+
+for (comm in communities) {cat("\n--- Now processing:", comm, "---\n")}
+#filter by community
+sub_data <- Data %>% filter(CommunityStationFront == comm)
+env_meta_cols <- c("estabdate", "enddate", "Accretion", "n", "lat", "lon",
+                   "CommunityStationFront", "TotalCover", "SummedCover",
+                   "Richness", "Shannon", "Simpson", "InvSimpson",
+                   "Latitude", "Longitude")
+
+species_data <- sub_data %>%
+  select(where(is.numeric)) %>%
+  select(-all_of(env_meta_cols)) 
+
+numeric_data <- select(sub_data, where(is.numeric))
+species_data <- select(numeric_data, -all_of(env_meta_cols))
+select
+# grab numeric columns (includes species + env)
+# exclude env/metadata
+# Separate species (assumes species are all numeric and not the env or community columns)
+sapply(sub_data, class)
+##########
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 head(Data)
 
@@ -81,11 +118,33 @@ swamp_dist <- swamp_dist[rowSums(swamp_dist) > 0, ]
 swamp_scores <- as.data.frame(swamp_pcoa$points)
 colnames(swamp_scores) <- c("PCoA1", "PCoA2")
 swamp_scores$StationFront <- rownames(swamp_scores)  # Add the StationFront back
-swamp_meta <- Data[, c("StationFront", "Community")]  # Add other columns as needed
+## Merge with metadata if you want to include more info (e.g., Community or StationID)
+swamp_meta <- data2[, c("StatoinFront","CommunityStationFront")]  # Add other columns as needed
+swamp_scores <- left_join(swamp_scores, swamp_meta, by = "StationFront")
+##
+eig_vals <- swamp_pcoa$eig
+x_var <- round(100 * eig_vals[1] / sum(eig_vals), 1)
+y_var <- round(100 * eig_vals[2] / sum(eig_vals), 1)
+##
+ggplot(swamp_scores, aes(x = PCoA1, y = PCoA2)) +
+  geom_point(aes(color = "red"), size = 4) +  
+  geom_text_repel(aes(label = StationFront), size = 3) +  # Label points with StationFront
+  labs(
+    title = "PCoA - Swamp Community",
+    x = paste0("PCoA1 (", x_var, "%)"),
+    y = paste0("PCoA2 (", y_var, "%)")
+  ) +
+  theme_minimal()
+##
 
-
-
-
+env_data <- Swamp_species[, c("Accretion", "n", "lat", "lon", 
+                     "TotalCover", "SummedCover", "Richness",
+                     "Shannon", "Simpson", "InvSimpson", 
+                     "Latitude", "Longitude")]
+env_data_swamp <- env_data[rownames(Swamp_species), ]
+env_fit <- envfit(swamp_pcoa, env_data, permutations = 999)
+Swamp_species[is.na(Swamp_species)] <- 0
+Swamp_species <- Swamp_species[rowSums(Swamp_species) > 0, ]
 ################################################################################
 plot(BrackishCommunity$Accretion, BrackishCommunity$TotalCover )
 plot(SalineCommunity$Accretion, SalineCommunity$TotalCover)
