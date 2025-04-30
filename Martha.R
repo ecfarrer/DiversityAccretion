@@ -64,45 +64,42 @@ dominant4 <- ggplot(brackish, aes(x = Schoe_americanus, y = Accretion)) +
 
 
 #accretion vs. below-ground biomass
-ggplot(brackish, aes(x = BelowgroundLive, y = Accretion)) +
+below_live <- ggplot(brackish_reduced, 
+                     aes(x = BelowgroundLive, y = Accretion)) +
   geom_point() +
   geom_smooth(method = lm, se = F)
 
-ggplot(brackish, aes(x = BelowgroundDead, y = Accretion)) +
+below_dead <- ggplot(brackish_reduced,
+                     aes(x = BelowgroundDead, y = Accretion)) +
   geom_point() +
   geom_smooth(method = lm, se = F)
 
+(below_live | below_dead)
 
 
-#glm with reduced data set (for biomass analysis)
+#glm with reduced data set (for biomass analysis - below ground biomass data available for only 25 out of total 47 station fronts (data = brackish_reduced))
+
 options(constrasts = c("contr.helmert", "contr.poly"))
 
 m1 <- gls(Accretion ~ Richness + SummedCover + BelowgroundLive + 
             BelowgroundDead + Region + Spart_patens, 
           correlation = corSpher(form = ~ lat+lon), 
-          method = "ML", data = na.omit(brackish))
+          method = "ML", data = brackish_reduced)
 
 stepAIC(m1, direction = "backward") 
 
 m2 <- gls(Accretion ~ Richness + SummedCover + Region + Spart_patens, 
           correlation = corSpher(form = ~ lat+lon), 
-          method = "REML", data = na.omit(brackish))
+          method = "REML", data = brackish_reduced)
 
 anova(m2, type = "marginal")
 
-#glm with full data set (excludes biomass analysis)
+#glm with full data set (excludes biomass analysis since biomass was removed in the previous model selection (data = brackish))
 m3 <- gls(Accretion ~ Richness + SummedCover + Region + Spart_patens, 
           correlation = corSpher(form = ~ lat+lon), 
           method = "ML", data = brackish)
 
-test <- gls(Accretion ~ Richness + SummedCover + Region + Spart_patens, 
-          correlation = corSpher(form = ~ lat+lon), 
-          method = "REML", data = brackish)
-
-anova(test, type = "marginal")
-
 stepAIC(m3, direction = "backward")
-
 
 #THIS IS THE FINAL MODEL
 m4 <- gls(Accretion ~ Richness, 
