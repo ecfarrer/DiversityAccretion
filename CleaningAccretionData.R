@@ -289,7 +289,43 @@ acc5[which(acc5$acc>100),]
 #this note is only relevant from the early part of the time series I think (like the first 9 years or something): the plot CRMS0174 has a value over 100mm/yr, this looks actually correct based on the data, although there is a note in the raw data file that one measurement was affected by a large storm deposit, so I could delete if it looks really odd. there is no veg data from this station
 
 
+## Sorting into early (2006-2014) and late (2015-2023) - Abby
 
+acc6<-acc4 %>% # using acc4 here because still has sample dates
+  group_by(StationFront,year)%>% # location and date of sampling
+  mutate(sample_time=ifelse(year < 2015, c("early"), c("late"))) %>%
+  ungroup() %>%
+  group_by(StationFront, sample_time) %>%
+  summarise(acc=as.numeric(coef(lm(meanaccmm~years))[2]),n=n(),lat=mean(lat),lon=mean(lon)) %>%
+  filter(n>4) # this gives 2 accretion rates for each plot - 1 early and 1 late
+# break point seems to be around 2014/2015
+
+# some only have early or late - how to account for this? cut these?
+  # trying that here (acc7)
+acc7 <- acc6 %>% 
+  group_by(StationFront) %>% 
+  filter(n() == 2) 
+  
+time <- ggplot(acc7, aes(x = sample_time, y = acc)) +
+  geom_boxplot()
+
+options(contrasts=c("contr.helmert","contr.poly")) ## check on all of this!!
+test <- lm(acc~ sample_time, data=acc7)
+anova <- anova(test)
+
+# also can try mixed effects model? random effect for stationfront
+library(lme4)
+model <- lmer(acc ~ sample_time + (1|StationFront), data = acc6)
+summary(model)
+anova(model)
+
+
+
+  
+  
+
+
+  
 
 
 
