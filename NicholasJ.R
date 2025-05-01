@@ -1,4 +1,5 @@
 library(tidyverse)
+library(piecewiseSEM)
 
 #bray-curtis
 library(vegan)
@@ -30,13 +31,46 @@ library(tidyverse)
 library(vegan)
 library(nlme)
 library(patchwork)
-
+library(MASS)
+library(performance)
+dat <- read.csv("Data/dat.csv")
 Intermediate <- dat %>%
   filter(dat$CommunityStationFront == "Intermediate")
+Intermediate2 <- Intermediate %>%
+  mutate(Region = case_when(lon < -92 ~ "west",
+                            lon > -92 ~ "east"))
+cols_to_drop <- c(
+  "estabdate", "CommunityStationFront", "enddate", "Accretion", 
+  "n", "lat", "lon", "TotalCover", "SummedCover", "Richness", 
+  "Shannon", "Simpson", "InvSimpson", "Latitude", "Longitude", "BelowgroundDead", "BelowgroundLive"
+)
 
-
+cols_to_keep <- setdiff(names(Intermediate), cols_to_drop)
+dom_species <- Intermediate[, cols_to_keep]
 dom_species <- Intermediate %>%
   select(-estabdate, -CommunityStationFront, -enddate, -Accretion, -n, -lat, -lon,-TotalCover,-SummedCover,-Richness, -Shannon, -Simpson, -InvSimpson, -Latitude,-Longitude)
+
+
+
+dom_species_clean <- dom_species %>%
+  select(StationFront, where(is.numeric)) %>%
+  pivot_longer(
+    cols = -StationFront,
+    names_to = "Species",
+    values_to = "Value"
+  ) %>%
+  drop_na(Value) %>%  # Optional: Remove NA rows
+  group_by(StationFront) %>%
+  slice_max(Value, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(StationFront, DominantSpecies = Species)
+
+
+
+
+
+
+
 
 dom_species <- dom_species %>%
   select(StationFront, where(is.numeric)) %>%  # Select only numeric species columns
@@ -133,3 +167,86 @@ r2
 
 #anovaIII
 anova(glm1, type = "marginal")
+
+
+#april 30 assignment 
+#accretion vs. below-ground biomass
+ggplot(Intermediate2, aes(x = BelowgroundLive, y = Accretion)) +
+  geom_point() +
+  geom_smooth(method = lm, se = F)
+
+ggplot(Intermediate2, aes(x = BelowgroundDead, y = Accretion)) +
+  geom_point() +
+  geom_smooth(method = lm, se = F)
+
+Intermediate$Schoe_americanus
+
+#glm with reduced data set (for biomass analysis)
+options(constrasts = c("contr.helmert", "contr.poly"))
+
+m1 <- gls(Accretion ~ Richness + SummedCover + BelowgroundLive + 
+            BelowgroundDead + Region  + BelowgroundDead + BelowgroundLive +Spart_patens + Vigna_luteola + Phrag_australis + Schoe_americanus, 
+          correlation = corSpher(form = ~ lat+lon), 
+          method = "ML", data = na.omit(Intermediate2))
+
+stepAIC(m1, direction = "backward") 
+
+m2 <- gls(Accretion ~ Richness + SummedCover + Region + Spart_patens + Vigna_luteola + Phrag_australis + Schoe_americanus, 
+          correlation = corSpher(form = ~ lat+lon), 
+          method = "REML", data = na.omit(Intermediate2))
+
+anova(m2, type = "marginal")
+
+#glm with all data
+m3 <- gls(Accretion ~ Richness + SummedCover + Region + BelowgroundDead + BelowgroundLive +Spart_patens + Vigna_luteola + Phrag_australis + Schoe_americanus, 
+          correlation = corSpher(form = ~ lat+lon), 
+          method = "ML", data = Intermediate2)
+
+mtest <- gls(Accretion ~ Richness + SummedCover + Region + Spart_patens + Vigna_luteola + Phrag_australis + Schoe_americanus, 
+            correlation = corSpher(form = ~ lat+lon), 
+            method = "REML", data = Intermediate2)
+
+anova(mtest, type = "marginal")
+
+stepAIC(m3, direction = "backward")
+
+#final accreation~richness
+m4 <- gls(Accretion ~ Richness, 
+          correlation = corSpher(form = ~ lat+lon), 
+          method = "REML", data = Intermediate2)
+
+anova(m4, type = "marginal")
+
+
+#model validation - normality and homosc. met
+plot(x = fitted(m4), y = resid(m4, type = "normalized"), abline(h = 0))
+
+hist(resid(m4, type = "normalized"))
+
+
+#extracting R-squared
+r2(m2)
+r2(m4)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
